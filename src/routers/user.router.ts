@@ -18,8 +18,15 @@ class UserRouter {
   getRoutes() {
     this.router.get(
       "/send/verification",
-      UserValidators.resendVerificationEmail(),
+      GlobalMiddleware.auth,
       UserController.resendVerificationEmail
+    );
+
+    this.router.get(
+      "/reset/password",
+      UserValidators.forgotPassword(),
+      GlobalMiddleware.checkError,
+      UserController.forgotPassword
     );
   }
 
@@ -30,7 +37,13 @@ class UserRouter {
       GlobalMiddleware.checkError,
       UserController.register
     );
-    this.router.post("/login", UserController.login);
+
+    this.router.post(
+      "/login",
+      UserValidators.login(),
+      GlobalMiddleware.checkError,
+      UserController.login
+    );
   }
 
   putRoutes() {}
@@ -40,6 +53,7 @@ class UserRouter {
       "/verify",
       UserValidators.verifyEmail(),
       GlobalMiddleware.checkError,
+      GlobalMiddleware.auth,
       UserController.verifyEmail
     );
   }

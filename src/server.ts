@@ -38,8 +38,7 @@ export class Server {
     this.app.use("/api/v1/user", userRouter);
 
     this.app.all("*", (req, res, next) => {
-      const err = new ErrorHandler(`Route ${req.originalUrl} not found.`, 404);
-      next(err);
+      next(new ErrorHandler(`Route ${req.originalUrl} not found.`, 404));
     });
   }
 
