@@ -1,3 +1,6 @@
+require("dotenv").config();
+import jwt from "jsonwebtoken";
+
 export class Utils {
   public TOKEN_EXPIRED = 5 * 60 * 1000;
 
