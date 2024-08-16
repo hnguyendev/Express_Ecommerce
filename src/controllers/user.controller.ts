@@ -22,7 +22,7 @@ export class UserController {
       });
 
       const payload = {
-        user_id: user._id,
+        aud: user._id,
         email: user.email,
       };
       const token = Jwt.jwtSign(payload);
@@ -121,11 +121,11 @@ export class UserController {
       const matchPassword = await user.comparePassword(password);
 
       if (!matchPassword) {
-        return next(new ErrorHandler("Invalid credentials", 400));
+        return next(new ErrorHandler("Invalid credentials", 401));
       }
 
       const payload = {
-        user_id: user._id,
+        aud: user._id,
         email: user.email,
       };
       const token = Jwt.jwtSign(payload);
@@ -140,6 +140,7 @@ export class UserController {
     }
   }
 
+  // send OTP to reset password
   static async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
       const { email } = req.query;
@@ -172,8 +173,136 @@ export class UserController {
     }
   }
 
-  static resetPassword(req: Request, res: Response, next: NextFunction) {
+  static verifyResetPasswordToken(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    res.status(200).json({
+      success: true,
+    });
+  }
+
+  static async resetPassword(req: Request, res: Response, next: NextFunction) {
+    const { email, new_password, reset_password_token } = req.body;
     try {
+      const user = await UserModel.findOne({ email });
+
+      if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+
+      if (user.reset_password_token !== reset_password_token) {
+        return next(new ErrorHandler("Invalid token", 401));
+      }
+
+      user.password = new_password;
+      await user.save();
+
+      res.status(200).json({
+        success: true,
+        message: "Reset password successfully",
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+
+  static async updatePassword(req: Request, res: Response, next: NextFunction) {
+    const { aud } = req.user;
+    const { old_password, new_password } = req.body;
+    try {
+      const user = await UserModel.findById({ aud }).select("+password");
+
+      if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+
+      const matchPassword = await user.comparePassword(old_password);
+
+      if (!matchPassword) {
+        return next(new ErrorHandler("Password does not match", 401));
+      }
+
+      user.password = new_password;
+      await user.save();
+
+      res.status(200).json({
+        success: true,
+        message: "Password updated",
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+
+  static async updateUserProfile(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    const { name, phone, email, password } = req.body;
+    const user = req.user;
+    try {
+      const existingUser = await UserModel.findById(user.aud).select(
+        "+password"
+      );
+      if (!existingUser) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+
+      const matchPassword = await existingUser.comparePassword(password);
+      if (!matchPassword) {
+        return next(new ErrorHandler("Password doesn't match", 401));
+      }
+
+      const verification_token = Utils.generateVerificationToken();
+
+      if (email) {
+        existingUser.email = email;
+        existingUser.email_verified = false;
+        existingUser.verification_token = verification_token;
+        existingUser.verification_token_time = new Date(
+          Date.now() + new Utils().TOKEN_EXPIRED
+        );
+      }
+      if (name) existingUser.name = name;
+      if (phone) existingUser.phone = phone;
+
+      await existingUser.save();
+
+      const payload = { aud: existingUser._id, email: existingUser.email };
+      const token = Jwt.jwtSign(payload);
+
+      await NodeMailer.sendMail({
+        to: [existingUser.email],
+        subject: "Email Verification",
+        html: `<h1>Please input ${verification_token} to verify your email</h1>`,
+      });
+
+      res.status(200).json({
+        success: true,
+        user: existingUser,
+        token,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+
+  static async getUserProfile(req: Request, res: Response, next: NextFunction) {
+    const user = req.user;
+    try {
+      const profile = await UserModel.findById(user.aud);
+
+      if (!profile) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+
+      res.status(200).json({
+        success: true,
+        profile,
+      });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));
     }
