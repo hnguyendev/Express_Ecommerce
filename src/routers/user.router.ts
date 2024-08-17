@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import { UserController } from "../controllers/user.controller";
-import { UserValidators } from "../validators/UserValidators";
+import { UserValidators } from "../validators/user.validator";
 import { GlobalMiddleware } from "../middleware/GlobalMiddleware";
 
 class UserRouter {

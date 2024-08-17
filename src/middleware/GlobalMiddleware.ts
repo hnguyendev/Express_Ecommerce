@@ -28,4 +28,19 @@ export class GlobalMiddleware {
       return next(new ErrorHandler(error.message, 500));
     }
   }
+
+  static role = (...roles: string[]) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+      if (!roles.includes(req.user.type)) {
+        return next(
+          new ErrorHandler(
+            `Role ${req.user.type} is not allowed to access this resource`,
+            403
+          )
+        );
+      }
+
+      next();
+    };
+  };
 }

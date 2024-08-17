@@ -24,6 +24,7 @@ export class UserController {
       const payload = {
         aud: user._id,
         email: user.email,
+        type: user.type,
       };
       const token = Jwt.jwtSign(payload);
 
@@ -127,6 +128,7 @@ export class UserController {
       const payload = {
         aud: user._id,
         email: user.email,
+        type: user.type,
       };
       const token = Jwt.jwtSign(payload);
 
@@ -271,7 +273,11 @@ export class UserController {
 
       await existingUser.save();
 
-      const payload = { aud: existingUser._id, email: existingUser.email };
+      const payload = {
+        aud: existingUser._id,
+        email: existingUser.email,
+        type: existingUser.type,
+      };
       const token = Jwt.jwtSign(payload);
 
       await NodeMailer.sendMail({
