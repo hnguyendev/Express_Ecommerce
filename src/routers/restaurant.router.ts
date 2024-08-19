@@ -1,9 +1,10 @@
 import express, { Router } from "express";
 import { GlobalMiddleware } from "../middleware/GlobalMiddleware";
-import { CityController } from "../controllers/city.controller";
-import { CityValidators } from "../validators/city.validator";
+import { RestaurantValidators } from "../validators/restaurant.validator";
+import { RestaurantController } from "../controllers/restaurant.controller";
+import { Utils } from "../utils/Utils";
 
-class CityRouter {
+class RestaurantRouter {
   public router: Router;
 
   constructor() {
@@ -16,7 +17,11 @@ class CityRouter {
   }
 
   getRoutes() {
-    this.router.get("/cities", CityController.getCities);
+    this.router.get(
+      "/",
+      GlobalMiddleware.auth,
+      RestaurantController.getRestaurants
+    );
   }
 
   postRoutes() {
@@ -24,9 +29,10 @@ class CityRouter {
       "/create",
       GlobalMiddleware.auth,
       GlobalMiddleware.role("admin"),
-      CityValidators.createCity(),
+      new Utils().multerStorage.single("cover"),
+      RestaurantValidators.createRestaurant(),
       GlobalMiddleware.checkError,
-      CityController.createCity
+      RestaurantController.createRestaurant
     );
   }
 
@@ -37,4 +43,4 @@ class CityRouter {
   deleteRoutes() {}
 }
 
-export default new CityRouter().router;
+export default new RestaurantRouter().router;

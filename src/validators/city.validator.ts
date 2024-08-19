@@ -1,7 +1,7 @@
 import { body } from "express-validator";
 
 export class CityValidators {
-  static addCity() {
+  static createCity() {
     return [
       body("name", "Name is required").isString(),
       body("lat", "Latitude is required").isNumeric(),
