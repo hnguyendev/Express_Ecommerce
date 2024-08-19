@@ -24,6 +24,7 @@ export class UserController {
       const payload = {
         aud: user._id,
         email: user.email,
+        type: user.type,
       };
       const token = Jwt.jwtSign(payload);
 
@@ -127,6 +128,7 @@ export class UserController {
       const payload = {
         aud: user._id,
         email: user.email,
+        type: user.type,
       };
       const token = Jwt.jwtSign(payload);
 
@@ -212,7 +214,7 @@ export class UserController {
     const { aud } = req.user;
     const { old_password, new_password } = req.body;
     try {
-      const user = await UserModel.findById({ aud }).select("+password");
+      const user = await UserModel.findById(aud).select("+password");
 
       if (!user) {
         return next(new ErrorHandler("User not found", 404));
@@ -244,6 +246,10 @@ export class UserController {
     const { name, phone, email, password } = req.body;
     const user = req.user;
     try {
+      if (!name && !phone && !email) {
+        return next(new ErrorHandler("Update at least 1 field", 400));
+      }
+
       const existingUser = await UserModel.findById(user.aud).select(
         "+password"
       );
@@ -265,20 +271,24 @@ export class UserController {
         existingUser.verification_token_time = new Date(
           Date.now() + new Utils().TOKEN_EXPIRED
         );
+
+        await NodeMailer.sendMail({
+          to: [email],
+          subject: "Email Verification",
+          html: `<h1>Please input ${verification_token} to verify your email</h1>`,
+        });
       }
       if (name) existingUser.name = name;
       if (phone) existingUser.phone = phone;
 
       await existingUser.save();
 
-      const payload = { aud: existingUser._id, email: existingUser.email };
+      const payload = {
+        aud: existingUser._id,
+        email: existingUser.email,
+        type: existingUser.type,
+      };
       const token = Jwt.jwtSign(payload);
-
-      await NodeMailer.sendMail({
-        to: [existingUser.email],
-        subject: "Email Verification",
-        html: `<h1>Please input ${verification_token} to verify your email</h1>`,
-      });
 
       res.status(200).json({
         success: true,
