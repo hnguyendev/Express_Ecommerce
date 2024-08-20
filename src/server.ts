@@ -8,6 +8,8 @@ import userRouter from "./routers/user.router";
 import bannerRouter from "./routers/banner.router";
 import cityRouter from "./routers/city.router";
 import restaurantRouter from "./routers/restaurant.router";
+import categoryRouter from "./routers/category.router";
+import itemRouter from "./routers/item.router";
 
 export class Server {
   public app: express.Application = express();
@@ -39,10 +41,12 @@ export class Server {
 
   setRoutes() {
     this.app.use("/src/uploads", express.static("src/uploads"));
-    this.app.use("/api/v1/user", userRouter);
-    this.app.use("/api/v1/banner", bannerRouter);
-    this.app.use("/api/v1/city", cityRouter);
-    this.app.use("/api/v1/restaurant", restaurantRouter);
+    this.app.use("/api/v1/users", userRouter);
+    this.app.use("/api/v1/banners", bannerRouter);
+    this.app.use("/api/v1/cities", cityRouter);
+    this.app.use("/api/v1/restaurants", restaurantRouter);
+    this.app.use("/api/v1/categories", categoryRouter);
+    this.app.use("/api/v1/items", itemRouter);
 
     this.app.all("*", (req, res, next) => {
       next(new ErrorHandler(`Route ${req.originalUrl} not found.`, 404));
