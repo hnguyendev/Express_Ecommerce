@@ -1,6 +1,7 @@
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 import RestaurantModel from "../models/restaurant.model";
 import CategoryModel from "../models/category.model";
+import { isValidObjectId } from "mongoose";
 
 export class ItemValidators {
   static createItem() {
@@ -36,6 +37,17 @@ export class ItemValidators {
           return true;
         }
       ),
+    ];
+  }
+
+  static getMenuItems() {
+    return [
+      param("restaurantId", "Restaurant is required")
+        .isString()
+        .custom((restaurantId) => {
+          if (!isValidObjectId(restaurantId)) throw new Error("Invalid id");
+          return true;
+        }),
     ];
   }
 }

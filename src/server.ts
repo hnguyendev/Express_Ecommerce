@@ -10,6 +10,8 @@ import cityRouter from "./routers/city.router";
 import restaurantRouter from "./routers/restaurant.router";
 import categoryRouter from "./routers/category.router";
 import itemRouter from "./routers/item.router";
+import addressRouter from "./routers/address.router";
+import orderRouter from "./routers/order.router";
 
 export class Server {
   public app: express.Application = express();
@@ -47,6 +49,8 @@ export class Server {
     this.app.use("/api/v1/restaurants", restaurantRouter);
     this.app.use("/api/v1/categories", categoryRouter);
     this.app.use("/api/v1/items", itemRouter);
+    this.app.use("/api/v1/address", addressRouter);
+    this.app.use("/api/v1/orders", orderRouter);
 
     this.app.all("*", (req, res, next) => {
       next(new ErrorHandler(`Route ${req.originalUrl} not found.`, 404));
