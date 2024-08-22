@@ -1,10 +1,9 @@
 import express, { Router } from "express";
 import { GlobalMiddleware } from "../middleware/GlobalMiddleware";
-import { Utils } from "../utils/Utils";
-import { BannerValidators } from "../validators/banner.validator";
-import { BannerController } from "../controllers/banner.controller";
+import { OrderValidators } from "../validators/order.validator";
+import { OrderController } from "../controllers/order.controller";
 
-class BannerRouter {
+class OrderRouter {
   public router: Router;
 
   constructor() {
@@ -17,18 +16,16 @@ class BannerRouter {
   }
 
   getRoutes() {
-    this.router.get("/", GlobalMiddleware.auth, BannerController.getBanners);
+    this.router.get("/", GlobalMiddleware.auth, OrderController.getOrders);
   }
 
   postRoutes() {
     this.router.post(
-      "/upload",
+      "/create",
       GlobalMiddleware.auth,
-      GlobalMiddleware.role("admin"),
-      new Utils().multerStorage.single("bannerImages"),
-      BannerValidators.uploadBanner(),
+      OrderValidators.createOrder(),
       GlobalMiddleware.checkError,
-      BannerController.uploadBanner
+      OrderController.createOrder
     );
   }
 
@@ -39,4 +36,4 @@ class BannerRouter {
   deleteRoutes() {}
 }
 
-export default new BannerRouter().router;
+export default new OrderRouter().router;

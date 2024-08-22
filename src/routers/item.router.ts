@@ -1,10 +1,10 @@
 import express, { Router } from "express";
 import { GlobalMiddleware } from "../middleware/GlobalMiddleware";
+import { ItemValidators } from "../validators/item.validator";
+import { ItemController } from "../controllers/item.controller";
 import { Utils } from "../utils/Utils";
-import { BannerValidators } from "../validators/banner.validator";
-import { BannerController } from "../controllers/banner.controller";
 
-class BannerRouter {
+class ItemRouter {
   public router: Router;
 
   constructor() {
@@ -17,18 +17,24 @@ class BannerRouter {
   }
 
   getRoutes() {
-    this.router.get("/", GlobalMiddleware.auth, BannerController.getBanners);
+    this.router.get(
+      "/menu-items/:restaurantId",
+      GlobalMiddleware.auth,
+      ItemValidators.getMenuItems(),
+      GlobalMiddleware.checkError,
+      ItemController.getMenuItems
+    );
   }
 
   postRoutes() {
     this.router.post(
-      "/upload",
+      "/create",
       GlobalMiddleware.auth,
       GlobalMiddleware.role("admin"),
-      new Utils().multerStorage.single("bannerImages"),
-      BannerValidators.uploadBanner(),
+      new Utils().multerStorage.single("itemImages"),
+      ItemValidators.createItem(),
       GlobalMiddleware.checkError,
-      BannerController.uploadBanner
+      ItemController.createItem
     );
   }
 
@@ -39,4 +45,4 @@ class BannerRouter {
   deleteRoutes() {}
 }
 
-export default new BannerRouter().router;
+export default new ItemRouter().router;

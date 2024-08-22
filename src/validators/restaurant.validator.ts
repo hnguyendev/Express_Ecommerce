@@ -1,23 +1,5 @@
-import { body } from "express-validator";
+import { body, query } from "express-validator";
 import UserModel from "../models/user.model";
-
-// user_id: { type: mongoose.Types.ObjectId, required: true },
-// city_id: { type: mongoose.Types.ObjectId, required: true },
-// name: { type: String, required: true },
-// short_name: { type: String, required: true },
-// cover: { type: String },
-// description: { type: String },
-// cuisines: { type: Array, required: true },
-// location: { type: Object, required: true },
-// open_time: { type: String, required: true },
-// close_time: { type: String, required: true },
-// price: { type: Number, required: true },
-// address: { type: String, required: true },
-// delivery_time: { type: String, required: true },
-// is_close: { type: Boolean, required: true, default: false },
-// status: { type: String, required: true, default: "active" },
-// rating: { type: Number, required: true, default: 0 },
-// total_rating: { type: Number, required: true, default: 0 },
 
 export class RestaurantValidators {
   static createRestaurant() {
@@ -42,7 +24,7 @@ export class RestaurantValidators {
       body("restaurant_name", "Restaurant name is required").isString(),
       body("short_name", "Restaurant short name is required").isString(),
       body("description").optional().isString(),
-      body("cover").custom((cover, { req }) => {
+      body("restaurantImages").custom((cover, { req }) => {
         if (!req.file) throw new Error("File not found");
         return true;
       }),
@@ -53,6 +35,23 @@ export class RestaurantValidators {
       body("price", "Price is required").isNumeric(),
       body("address", "Address is required").isString(),
       body("delivery_time", "Delivery time is required").isNumeric(),
+    ];
+  }
+
+  static getNearbyRestaurants() {
+    return [
+      query("lat", "Latitude is required").isNumeric(),
+      query("lng", "Longitude is required").isNumeric(),
+      query("radius", "Radius is required").isNumeric(),
+    ];
+  }
+
+  static searchNearbyRestaurants() {
+    return [
+      query("name", "Name is required").isString(),
+      query("lat", "Latitude is required").isNumeric(),
+      query("lng", "Longitude is required").isNumeric(),
+      query("radius", "Radius is required").isNumeric(),
     ];
   }
 }

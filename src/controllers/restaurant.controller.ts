@@ -37,9 +37,9 @@ export class RestaurantController {
         location: JSON.parse(data.location),
         open_time: data.open_time,
         close_time: data.close_time,
-        price: data.price,
+        price: parseInt(data.price),
         address: data.address,
-        delivery_time: data.delivery_time,
+        delivery_time: parseInt(data.delivery_time),
       });
 
       const categories = JSON.parse(data.categories).map((category) => {
@@ -59,7 +59,66 @@ export class RestaurantController {
 
   static async getRestaurants(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurants = await RestaurantModel.find({});
+      const restaurants = await RestaurantModel.find({
+        status: "active",
+      });
+
+      res.status(200).json({
+        success: true,
+        restaurants,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+
+  static async getNearbyRestaurants(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    const { lat, lng, radius }: any = req.query;
+    try {
+      const restaurants = await RestaurantModel.find({
+        status: "active",
+        location: {
+          $geoWithin: {
+            $centerSphere: [
+              [parseFloat(lng), parseFloat(lat)],
+              parseFloat(radius) / 6378.1,
+            ],
+          },
+        },
+      });
+
+      res.status(200).json({
+        success: true,
+        restaurants,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+
+  static async searchNearbyRestaurants(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    const { name, lat, lng, radius }: any = req.query;
+    try {
+      const restaurants = await RestaurantModel.find({
+        status: "active",
+        name: { $regex: name, $options: "i" },
+        location: {
+          $geoWithin: {
+            $centerSphere: [
+              [parseFloat(lng), parseFloat(lat)],
+              parseFloat(radius) / 6378.1,
+            ],
+          },
+        },
+      });
 
       res.status(200).json({
         success: true,
