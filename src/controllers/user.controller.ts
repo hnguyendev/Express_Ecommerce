@@ -26,7 +26,8 @@ export class UserController {
         email: user.email,
         type: user.type,
       };
-      const token = Jwt.jwtSign(payload);
+      const access_token = Jwt.signAccessToken(payload);
+      const refresh_token = Jwt.signRefreshToken(payload);
 
       await NodeMailer.sendMail({
         to: [user.email],
@@ -37,7 +38,8 @@ export class UserController {
       res.status(200).json({
         success: true,
         message: `Please check your ${user.email} to activate account!`,
-        token: token,
+        access_token,
+        refresh_token,
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));
@@ -130,12 +132,15 @@ export class UserController {
         email: user.email,
         type: user.type,
       };
-      const token = Jwt.jwtSign(payload);
+
+      const accessToken = Jwt.signAccessToken(payload);
+      const refreshToken = Jwt.signRefreshToken(payload);
 
       res.status(200).json({
         success: true,
         user,
-        token: token,
+        accessToken,
+        refreshToken,
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));
@@ -288,12 +293,15 @@ export class UserController {
         email: existingUser.email,
         type: existingUser.type,
       };
-      const token = Jwt.jwtSign(payload);
+
+      const accessToken = Jwt.signAccessToken(payload);
+      const refreshToken = Jwt.signRefreshToken(payload);
 
       res.status(200).json({
         success: true,
         user: existingUser,
-        token,
+        accessToken,
+        refreshToken,
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));
@@ -312,6 +320,43 @@ export class UserController {
       res.status(200).json({
         success: true,
         profile,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+
+  static async updateAccessToken(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    const { refresh_token } = req.body;
+    try {
+      const decoded = await Jwt.verifyRefreshToken(refresh_token);
+      if (!decoded) {
+        return next(new ErrorHandler("Could not refresh token", 400));
+      }
+
+      const user = await UserModel.findById(decoded.aud);
+
+      if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+
+      const payload = {
+        aud: user._id,
+        email: user.email,
+        type: user.type,
+      };
+
+      const accessToken = Jwt.signAccessToken(payload);
+      const refreshToken = Jwt.signRefreshToken(payload);
+
+      res.status(200).json({
+        success: true,
+        accessToken,
+        refreshToken,
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));

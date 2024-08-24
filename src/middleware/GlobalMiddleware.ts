@@ -16,12 +16,12 @@ export class GlobalMiddleware {
   static async auth(req: Request, res: Response, next: NextFunction) {
     const header = req.headers.authorization;
     if (!header || !header.includes("Bearer")) {
-      return next(new ErrorHandler("Unauthorized", 403));
+      return next(new ErrorHandler("Unauthorized", 401));
     }
     const token = header.split(" ")[1];
 
     try {
-      const decoded = await Jwt.jwtVerify(token);
+      const decoded = await Jwt.verifyAccessToken(token);
       req.user = decoded;
       next();
     } catch (error: any) {
