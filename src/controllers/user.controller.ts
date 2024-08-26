@@ -5,6 +5,7 @@ import ErrorHandler from "../utils/ErrorHandler";
 import { Utils } from "../utils/Utils";
 import { NodeMailer } from "../utils/NodeMailer";
 import { Jwt } from "../utils/Jwt";
+import { Redis } from "../utils/Redis";
 
 export class UserController {
   static async register(req: Request, res: Response, next: NextFunction) {
@@ -26,7 +27,8 @@ export class UserController {
         email: user.email,
         type: user.type,
       };
-      const token = Jwt.jwtSign(payload);
+      const access_token = Jwt.signAccessToken(payload);
+      const refresh_token = await Jwt.signRefreshToken(payload);
 
       await NodeMailer.sendMail({
         to: [user.email],
@@ -34,10 +36,21 @@ export class UserController {
         html: `<h1>Please input ${verification_token} to verify your email.</h1>`,
       });
 
+      const user_data = {
+        email: user.email,
+        email_verified: user.email_verified,
+        phone: user.phone,
+        name: user.name,
+        type: user.type,
+        status: user.status,
+      };
+
       res.status(200).json({
         success: true,
         message: `Please check your ${user.email} to activate account!`,
-        token: token,
+        user: user_data,
+        access_token,
+        refresh_token,
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));
@@ -55,7 +68,17 @@ export class UserController {
           verification_token_time: { $gt: Date.now() },
         },
         { email_verified: true },
-        { new: true }
+        {
+          new: true,
+          projection: {
+            verification_token: 0,
+            verification_token_time: 0,
+            reset_password_token: 0,
+            reset_password_token_time: 0,
+            __v: 0,
+            _id: 0,
+          },
+        }
       );
 
       if (!user) {
@@ -66,6 +89,7 @@ export class UserController {
 
       res.status(200).json({
         success: true,
+        user,
         message: "Email verified successfully",
       });
     } catch (error: any) {
@@ -130,12 +154,24 @@ export class UserController {
         email: user.email,
         type: user.type,
       };
-      const token = Jwt.jwtSign(payload);
+
+      const accessToken = Jwt.signAccessToken(payload);
+      const refreshToken = await Jwt.signRefreshToken(payload);
+
+      const user_data = {
+        email: user.email,
+        email_verified: user.email_verified,
+        phone: user.phone,
+        name: user.name,
+        type: user.type,
+        status: user.status,
+      };
 
       res.status(200).json({
         success: true,
-        user,
-        token: token,
+        user: user_data,
+        accessToken,
+        refreshToken,
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));
@@ -288,12 +324,24 @@ export class UserController {
         email: existingUser.email,
         type: existingUser.type,
       };
-      const token = Jwt.jwtSign(payload);
+
+      const accessToken = Jwt.signAccessToken(payload);
+      const refreshToken = await Jwt.signRefreshToken(payload);
+
+      const user_data = {
+        email: existingUser.email,
+        email_verified: existingUser.email_verified,
+        phone: existingUser.phone,
+        name: existingUser.name,
+        type: existingUser.type,
+        status: existingUser.status,
+      };
 
       res.status(200).json({
         success: true,
-        user: existingUser,
-        token,
+        user: user_data,
+        accessToken,
+        refreshToken,
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));
@@ -309,9 +357,69 @@ export class UserController {
         return next(new ErrorHandler("User not found", 404));
       }
 
+      const user_data = {
+        email: user.email,
+        email_verified: user.email_verified,
+        phone: user.phone,
+        name: user.name,
+        type: user.type,
+        status: user.status,
+      };
+
       res.status(200).json({
         success: true,
-        profile,
+        profile: user_data,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+
+  static async updateAccessToken(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    const { refresh_token } = req.body;
+    try {
+      const decoded = await Jwt.verifyRefreshToken(refresh_token);
+      if (!decoded) {
+        return next(new ErrorHandler("Could not refresh token", 400));
+      }
+
+      const user = await UserModel.findById(decoded.aud);
+
+      if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+      }
+
+      const payload = {
+        aud: user._id,
+        email: user.email,
+        type: user.type,
+      };
+
+      const accessToken = Jwt.signAccessToken(payload);
+      const refreshToken = await Jwt.signRefreshToken(payload);
+
+      res.status(200).json({
+        success: true,
+        accessToken,
+        refreshToken,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+
+  static async logout(req: Request, res: Response, next: NextFunction) {
+    const { aud } = req.user;
+
+    try {
+      await Redis.deleteKey(aud);
+
+      res.status(200).json({
+        success: true,
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));

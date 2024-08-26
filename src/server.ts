@@ -12,6 +12,7 @@ import categoryRouter from "./routers/category.router";
 import itemRouter from "./routers/item.router";
 import addressRouter from "./routers/address.router";
 import orderRouter from "./routers/order.router";
+import { Redis } from "./utils/Redis";
 
 export class Server {
   public app: express.Application = express();
@@ -24,6 +25,7 @@ export class Server {
 
   setConfigs() {
     this.connectMongoDB();
+    this.connectRedis();
     this.configureBodyParser();
     this.allowCors();
   }
@@ -39,6 +41,11 @@ export class Server {
 
   connectMongoDB() {
     connectDB();
+  }
+
+  connectRedis() {
+    Redis.connectRedis();
+    Redis.setValue("xd", "copium");
   }
 
   setRoutes() {

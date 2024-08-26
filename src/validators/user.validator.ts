@@ -117,4 +117,17 @@ export class UserValidators {
       body("password", "Password is required").isString(),
     ];
   }
+
+  static updateAccessToken() {
+    return [
+      body("refresh_token", "Refresh token is required")
+        .isString()
+        .custom((refresh_token, { req }) => {
+          if (!refresh_token) {
+            throw new Error("No refresh token available");
+          }
+          return true;
+        }),
+    ];
+  }
 }

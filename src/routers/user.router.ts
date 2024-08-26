@@ -57,6 +57,15 @@ class UserRouter {
       GlobalMiddleware.checkError,
       UserController.login
     );
+
+    this.router.post("/logout", GlobalMiddleware.auth, UserController.logout);
+
+    this.router.post(
+      "/refresh-token",
+      UserValidators.updateAccessToken(),
+      GlobalMiddleware.checkError,
+      UserController.updateAccessToken
+    );
   }
 
   putRoutes() {}
