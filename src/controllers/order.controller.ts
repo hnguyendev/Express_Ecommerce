@@ -39,20 +39,53 @@ export class OrderController {
 
   static async getOrders(req: Request, res: Response, next: NextFunction) {
     const { aud } = req.user;
+    const { page = 1 } = req.query;
+    const limit = 10;
     try {
       const existingUser = await UserModel.findById(aud);
-
       if (!existingUser) {
         return next(new ErrorHandler("User not found", 404));
       }
 
-      const orders = await OrderModel.find({
+      const total = await OrderModel.countDocuments({
         user_id: existingUser._id,
-      }).populate("restaurant_id");
+      });
+      if (!total) {
+        return res.status(200).json({
+          success: true,
+          orders: [],
+        });
+      }
+
+      const pageCount = Math.ceil(total / limit);
+
+      if (
+        parseInt(page as string) > pageCount ||
+        parseInt(page as string) < 1
+      ) {
+        return next(new ErrorHandler("Invalid page number", 400));
+      }
+
+      const options = {
+        skip: (parseInt(page as string, 10) - 1) * limit,
+        limit,
+      };
+
+      const orders = await OrderModel.find(
+        { user_id: existingUser._id },
+        { user_id: 0, __v: 0 },
+        options
+      ).sort("-createdAt");
 
       res.status(200).json({
         success: true,
         orders,
+        pagination: {
+          page,
+          pageSize: limit,
+          total,
+          pageCount,
+        },
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));
