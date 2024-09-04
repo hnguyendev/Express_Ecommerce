@@ -58,51 +58,14 @@ export class RestaurantController {
   }
 
   static async getRestaurants(req: Request, res: Response, next: NextFunction) {
-    const limit = 10;
-    const { page = 1, sort } = req.query;
     try {
-      const total = await RestaurantModel.countDocuments({ status: "active" });
-      const pageCount = Math.ceil(total / limit);
-
-      if (
-        parseInt(page as string) > pageCount ||
-        parseInt(page as string) < 1
-      ) {
-        return next(new ErrorHandler("Invalid page number", 400));
-      }
-
-      const sortBy = {};
-      if (sort) {
-        const [value, order] = sort.toString().split("-");
-        const allowedFields = ["price", "rating"];
-        if (allowedFields.includes(value)) {
-          sortBy[value] = order === "desc" ? -1 : 1;
-        }
-      } else {
-        sortBy["createdAt"] = -1;
-      }
-
-      const options = {
-        skip: (parseInt(page as string) - 1) * limit,
-        limit,
-        sort: sortBy,
-      };
-
-      const restaurants = await RestaurantModel.find(
-        { status: "active" },
-        null,
-        options
-      );
+      const restaurants = await RestaurantModel.find({
+        status: "active",
+      });
 
       res.status(200).json({
         success: true,
         restaurants,
-        pagination: {
-          page,
-          pageSize: limit,
-          total,
-          pageCount,
-        },
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));
