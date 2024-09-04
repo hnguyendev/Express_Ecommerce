@@ -48,10 +48,14 @@ export class RestaurantValidators {
 
   static searchNearbyRestaurants() {
     return [
-      query("name", "Name is required").isString(),
+      query("name", "Name is required")
+        .isString()
+        .isLength({ min: 3 })
+        .withMessage("Name must be at least 3 characters"),
       query("lat", "Latitude is required").isNumeric(),
       query("lng", "Longitude is required").isNumeric(),
       query("radius", "Radius is required").isNumeric(),
+      query("Page", "Page is required").optional().isNumeric(),
     ];
   }
 }

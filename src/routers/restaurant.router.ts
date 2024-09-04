@@ -20,6 +20,7 @@ class RestaurantRouter {
     this.router.get(
       "/",
       GlobalMiddleware.auth,
+      GlobalMiddleware.role("admin"),
       RestaurantController.getRestaurants
     );
 

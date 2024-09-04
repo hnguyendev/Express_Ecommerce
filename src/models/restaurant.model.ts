@@ -9,7 +9,13 @@ const restaurantSchema = new mongoose.Schema(
     cover: { type: String, required: true },
     description: { type: String, default: "" },
     cuisines: { type: Array, required: true },
-    location: { type: Object, required: true },
+    location: {
+      type: {
+        type: String,
+        default: "Point",
+      },
+      coordinates: [Number],
+    },
     open_time: { type: String, required: true },
     close_time: { type: String, required: true },
     address: { type: String, required: true },
@@ -22,6 +28,8 @@ const restaurantSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+restaurantSchema.index({ location: "2dsphere" });
 
 const RestaurantModel = mongoose.model("Restaurants", restaurantSchema);
 export default RestaurantModel;
