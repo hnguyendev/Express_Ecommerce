@@ -29,7 +29,18 @@ const restaurantSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-restaurantSchema.index({ location: "2dsphere" });
+restaurantSchema.index(
+  { location: "2dsphere", status: 1, name: 1 },
+  { name: "geolocation" }
+);
+restaurantSchema.index(
+  { status: 1, price: 1, _id: 1, location: "2dsphere" },
+  { name: "sort_price" }
+);
+restaurantSchema.index(
+  { status: 1, rating: 1, _id: 1, location: "2dsphere" },
+  { name: "sort_rating" }
+);
 
 const RestaurantModel = mongoose.model("Restaurants", restaurantSchema);
 export default RestaurantModel;
