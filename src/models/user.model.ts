@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 export interface IUser extends Document {
   name: string;
   phone: string;
+  avatar?: string;
   email: string;
   email_verified: boolean;
   verification_token: number;
@@ -20,6 +21,7 @@ const userSchema = new mongoose.Schema<IUser>(
   {
     name: { type: String, required: true },
     phone: { type: String, required: true, unique: true },
+    avatar: { type: String, default: "" },
     email: { type: String, required: true, unique: true },
     email_verified: { type: Boolean, required: true, default: false },
     verification_token: { type: Number, required: true },

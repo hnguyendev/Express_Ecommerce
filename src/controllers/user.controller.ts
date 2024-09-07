@@ -6,6 +6,8 @@ import { Utils } from "../utils/Utils";
 import { NodeMailer } from "../utils/NodeMailer";
 import { Jwt } from "../utils/Jwt";
 import { Redis } from "../utils/Redis";
+import moment from "moment";
+import ExcelJS from "exceljs";
 
 export class UserController {
   static async register(req: Request, res: Response, next: NextFunction) {
@@ -39,6 +41,7 @@ export class UserController {
       const user_data = {
         email: user.email,
         email_verified: user.email_verified,
+        avatar: user.avatar,
         phone: user.phone,
         name: user.name,
         type: user.type,
@@ -161,6 +164,7 @@ export class UserController {
       const user_data = {
         email: user.email,
         email_verified: user.email_verified,
+        avatar: user.avatar,
         phone: user.phone,
         name: user.name,
         type: user.type,
@@ -331,6 +335,7 @@ export class UserController {
       const user_data = {
         email: existingUser.email,
         email_verified: existingUser.email_verified,
+        avatar: user.avatar,
         phone: existingUser.phone,
         name: existingUser.name,
         type: existingUser.type,
@@ -349,17 +354,18 @@ export class UserController {
   }
 
   static async getUserProfile(req: Request, res: Response, next: NextFunction) {
-    const user = req.user;
+    const { aud } = req.user;
     try {
-      const profile = await UserModel.findById(user.aud);
+      const user = await UserModel.findById(aud);
 
-      if (!profile) {
+      if (!user) {
         return next(new ErrorHandler("User not found", 404));
       }
 
       const user_data = {
         email: user.email,
         email_verified: user.email_verified,
+        avatar: user.avatar,
         phone: user.phone,
         name: user.name,
         type: user.type,
@@ -423,6 +429,79 @@ export class UserController {
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 500));
+    }
+  }
+
+  static async updateUserAvatar(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    const { path } = req.file;
+    const { aud } = req.user;
+    try {
+      const user = await UserModel.findById(aud);
+      if (!user) {
+        return next(new ErrorHandler("User not found", 400));
+      }
+
+      user.avatar = path;
+      await user.save();
+
+      const user_data = {
+        email: user.email,
+        email_verified: user.email_verified,
+        avatar: user.avatar,
+        phone: user.phone,
+        name: user.name,
+        type: user.type,
+        status: user.status,
+      };
+
+      res.status(200).json({
+        success: true,
+        user: user_data,
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  }
+
+  static async exportUsersToExcel(req, res, next) {
+    const startDate = moment(new Date()).startOf("month").toDate();
+    const endDate = moment(new Date()).endOf("month").toDate();
+    try {
+      const users = await UserModel.find({
+        // created_at: {
+        //     $gte: startDate,
+        //     $lte: endDate
+        // },
+        type: "user",
+      });
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("users");
+      worksheet.columns = [
+        { header: "SL NO.", key: "s_no", width: 10 },
+        { header: "NAME", key: "name", width: 10 },
+        { header: "EMAIL", key: "email", width: 10 },
+        { header: "EMAIL VERIFIED", key: "email_verified", width: 10 },
+        { header: "PHONE", key: "phone", width: 10 },
+      ];
+      let count = 1;
+      users.forEach((user: any) => {
+        user.s_no = count;
+        worksheet.addRow(user);
+        count++;
+      });
+
+      worksheet.getRow(1).eachCell((cell) => {
+        cell.font = { bold: true };
+      });
+      // const data = await workbook.xlsx.writeFile('users.xlsx');
+      const data = await workbook.xlsx.writeFile("src/uploads/users.xlsx");
+      res.send("exported successfully");
+    } catch (e) {
+      next(e);
     }
   }
 }

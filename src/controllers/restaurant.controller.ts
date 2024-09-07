@@ -136,7 +136,6 @@ export class RestaurantController {
         const encryptedData = `${lastRestaurant["_id"]}-${lastRestaurant[cursorField]}`;
         newCursor = Utils.encryptCursor(encryptedData);
       }
-      console.log(restaurants.length);
 
       res.status(200).json({
         success: true,
