@@ -4,7 +4,6 @@ import RestaurantModel from "../models/restaurant.model";
 import { Utils } from "../utils/Utils";
 import UserModel from "../models/user.model";
 import CategoryModel from "../models/category.model";
-import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
 export class RestaurantController {
@@ -79,52 +78,63 @@ export class RestaurantController {
     res: Response,
     next: NextFunction
   ) {
-    const { lat, lng, radius, sort } = req.query;
-    const limit = 10;
-    const { cursor } = req.body;
+    const { lat, lng, radius, sort, cursor } = req.query;
+    const limit = 50;
     try {
-      const sortBy: any = { _id: 1 };
       let query: Record<string, any> = { status: "active" };
+      let cursorField = "_id";
 
-      if (sort) {
-        const [value, order] = sort.toString().split("-");
-        const allowedFields = ["price", "rating"];
-        if (allowedFields.includes(value)) {
-          sortBy[value] = order === "desc" ? -1 : 1;
-        }
+      const [value, direction] = sort?.toString().split("-") || ["_id", "asc"];
+      const allowedFields = ["price", "rating"];
+      if (allowedFields.includes(value)) {
+        cursorField = value;
       }
+
+      const order = {
+        key: direction === "desc" ? "$lt" : "$gt",
+        sort_order: direction === "desc" ? -1 : 1,
+      };
+
+      const sortBy: any = {
+        [cursorField]: order.sort_order,
+        _id: order.sort_order,
+      };
 
       if (cursor) {
-        const decrypted = jwt.verify(cursor, process.env.ACCESS_TOKEN);
-        console.log(cursor);
-        query._id = { $gt: new mongoose.Types.ObjectId(decrypted as string) };
+        const decrypted = Utils.decryptCursor(cursor as string);
+        const [lastId, lastValue] = decrypted.split("-");
+        const cursorId = new mongoose.Types.ObjectId(lastId);
+
+        query.$or = [
+          { [cursorField]: { [order.key]: lastValue } },
+          {
+            [cursorField]: lastValue,
+            _id: { [order.key]: cursorId },
+          },
+        ];
       }
 
-      const restaurants = await RestaurantModel.aggregate([
-        {
-          $geoNear: {
-            near: {
-              type: "Point",
-              coordinates: [
-                parseFloat(lng as string),
-                parseFloat(lat as string),
-              ],
-            },
-            spherical: true,
-            query: query,
-            distanceField: "calc_distance",
-            maxDistance: parseFloat(radius as string) * 1000,
+      const restaurants = await RestaurantModel.find({
+        ...query,
+        location: {
+          $geoWithin: {
+            $centerSphere: [
+              [parseFloat(lng as string), parseFloat(lat as string)],
+              parseFloat(radius as string) / 6378.1,
+            ],
           },
         },
-        { $sort: sortBy },
-      ]).limit(limit);
+      })
+        .sort(sortBy)
+        .limit(limit);
 
       let newCursor = null;
+      let hasNextPage = false;
       if (restaurants.length === limit) {
-        newCursor = jwt.sign(
-          restaurants[restaurants.length - 1]["_id"].toString(),
-          process.env.ACCESS_TOKEN
-        );
+        hasNextPage = true;
+        const lastRestaurant = restaurants[restaurants.length - 1];
+        const encryptedData = `${lastRestaurant["_id"]}-${lastRestaurant[cursorField]}`;
+        newCursor = Utils.encryptCursor(encryptedData);
       }
 
       res.status(200).json({
@@ -132,6 +142,7 @@ export class RestaurantController {
         restaurants,
         pagination: {
           cursor: newCursor,
+          hasNextPage,
         },
       });
     } catch (error: any) {
@@ -187,6 +198,7 @@ export class RestaurantController {
                 parseFloat(lat as string),
               ],
             },
+            key: "location",
             spherical: true,
             query: {
               status: "active",

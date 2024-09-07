@@ -2,6 +2,7 @@ import express, { Router } from "express";
 import { UserController } from "../controllers/user.controller";
 import { UserValidators } from "../validators/user.validator";
 import { GlobalMiddleware } from "../middleware/GlobalMiddleware";
+import { Utils } from "../utils/Utils";
 
 class UserRouter {
   public router: Router;
@@ -40,6 +41,13 @@ class UserRouter {
       "/profile",
       GlobalMiddleware.auth,
       UserController.getUserProfile
+    );
+
+    this.router.get(
+      "/excel-data",
+      GlobalMiddleware.auth,
+      GlobalMiddleware.role("admin"),
+      UserController.exportUsersToExcel
     );
   }
 
@@ -100,6 +108,15 @@ class UserRouter {
       UserValidators.updateUserProfile(),
       GlobalMiddleware.checkError,
       UserController.updateUserProfile
+    );
+
+    this.router.patch(
+      "/update/avatar",
+      GlobalMiddleware.auth,
+      new Utils().multerStorage.single("userImages"),
+      UserValidators.updateUserAvatar(),
+      GlobalMiddleware.checkError,
+      UserController.updateUserAvatar
     );
   }
 

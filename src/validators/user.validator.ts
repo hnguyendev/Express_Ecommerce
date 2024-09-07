@@ -130,4 +130,15 @@ export class UserValidators {
         }),
     ];
   }
+
+  static updateUserAvatar() {
+    return [
+      body("userImages").custom((userImage, { req }) => {
+        if (!req.file) {
+          throw new Error("File not found");
+        }
+        return true;
+      }),
+    ];
+  }
 }
